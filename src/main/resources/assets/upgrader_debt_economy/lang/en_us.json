@@ -1,0 +1,9 @@
+{
+  "item.upgrader_debt_economy.credit_coin": "Credit Coin (100 ₡)",
+  "item.upgrader_debt_economy.smartphone": "UDE Smartphone",
+  "item.upgrader_debt_economy.bank_card": "Bank Card",
+  "item.upgrader_debt_economy.business_licence": "Business Licence",
+  "block.upgrader_debt_economy.atm": "UDE ATM",
+  "block.upgrader_debt_economy.home_marker": "Home Address",
+  "itemGroup.upgrader_debt_economy": "Upgrader: Debt & Economy"
+}

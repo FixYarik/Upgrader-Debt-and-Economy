@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="Upgrader: Debt & Economy (Alpha)"
+authors="Community prototype"
+description="Alpha prototype: banking, loans, business registration and debt-collector notifications."
+[[dependencies.upgrader_debt_economy]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.upgrader_debt_economy]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+# Upgrader Items is a target of future integration. No unverified mod ID is declared here.

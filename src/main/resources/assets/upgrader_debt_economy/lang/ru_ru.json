@@ -1,0 +1,9 @@
+{
+  "item.upgrader_debt_economy.credit_coin": "Монета (100 ₡)",
+  "item.upgrader_debt_economy.smartphone": "UDE Смартфон",
+  "item.upgrader_debt_economy.bank_card": "Банковская карта",
+  "item.upgrader_debt_economy.business_licence": "Лицензия предприятия",
+  "block.upgrader_debt_economy.atm": "Банкомат UDE",
+  "block.upgrader_debt_economy.home_marker": "Домашний адрес",
+  "itemGroup.upgrader_debt_economy": "Upgrader: Debt & Economy"
+}
