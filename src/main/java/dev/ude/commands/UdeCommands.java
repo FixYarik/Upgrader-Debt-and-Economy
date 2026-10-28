@@ -180,13 +180,28 @@ public final class UdeCommands {
                     d.engine().openAccount(p.getUUID());d.engine().grant(p.getUUID(),LongArgumentType.getLong(c,"amount"),op());d.changed();
                     msg(c.getSource(),"Средства зачислены игроку "+p.getName().getString());return 1;
                 }))))))
-            .then(Commands.literal("cityhall").then(Commands.literal("build").requires(s->s.hasPermission(2))
+            .then(Commands.literal("cityhall")
+                .then(Commands.literal("locate").executes(c->{
+                    var level=c.getSource().getLevel();
+                    var at=c.getSource().getPosition();
+                    var hall=dev.ude.world.CityHallData.get(level).halls().stream().filter(h->h.center!=null)
+                        .min(java.util.Comparator.comparingDouble(h->h.center.distToCenterSqr(at)));
+                    if(hall.isEmpty()){msg(c.getSource(),"Мэрия ещё не найдена. Исследуйте деревни и свободные площадки рядом с ними.");return 0;}
+                    msg(c.getSource(),"Мэрия: "+hall.get().center.toShortString()+" ["+hall.get().phase+"]");return 1;
+                }))
+                .then(Commands.literal("status").requires(s->s.hasPermission(2)).executes(c->{
+                    for(var hall:dev.ude.world.CityHallData.get(c.getSource().getLevel()).halls())
+                        msg(c.getSource(),hall.id+" "+hall.phase+" "+(hall.center==null?"поиск участка":hall.center.toShortString())+" отклонено="+hall.rejected.size());
+                    return 1;
+                }))
+                .then(Commands.literal("build").requires(s->s.hasPermission(2))
                 .executes(c->guard(c.getSource(),()->{
                     ServerPlayer p=c.getSource().getPlayerOrException();ServerLevel level=p.serverLevel();
-                    BlockPos center=p.blockPosition().offset(0,0,45);
+                    int x=p.getBlockX(),z=p.getBlockZ()+45;
+                    BlockPos center=new BlockPos(x,level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z)-1,z);
                     if(!CityHallBuilder.canBuild(level,center))throw new IllegalStateException("Неподходящий участок: найдите ровную свободную площадку 55x65 блоков");
                     CityHallBuilder.build(level,center);
-                    msg(c.getSource(),"Мэрия построена около "+center.toShortString());return 1;
+                    msg(c.getSource(),"Строительство мэрии началось около "+center.toShortString());return 1;
                 })))
             )
         );

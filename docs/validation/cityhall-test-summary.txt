@@ -1,0 +1,35 @@
+Command: gradle build runGameTestServer -x downloadAssets
+Summary of final run, 2026-10-28. All four GameTests required.
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :jar
+> Task :downloadMcpConfig
+> Task :extractSrg UP-TO-DATE
+> Task :createMcpToSrg UP-TO-DATE
+> Task :reobfJar
+> Task :jarJar SKIPPED
+> Task :reobfJarJar SKIPPED
+> Task :assemble
+> Task :compileTestJava UP-TO-DATE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :commandTreeTest
+PASS: command hierarchy and 8 executable paths
+> Task :coreTest
+PASS: 43 core assertions
+> Task :test
+> Task :check
+> Task :build
+> Task :createSrgToMcp UP-TO-DATE
+> Task :downloadMCMeta UP-TO-DATE
+> Task :extractNatives UP-TO-DATE
+> Task :makeSrcDirs
+> Task :prepareRuns
+> Task :prepareRunGameTestServer
+> Task :prepareRunGameTestServerCompile UP-TO-DATE
+> Task :runGameTestServer
+[12:33:54] [Server thread/INFO] [minecraft/GameTestServer]: ========= 4 GAME TESTS COMPLETE ======================
+[12:33:54] [Server thread/INFO] [minecraft/GameTestServer]: All 4 required tests passed :)
+BUILD SUCCESSFUL in 1m 49s

@@ -12,8 +12,16 @@ public final class BusinessSitePlanner {
     public static final int RADIUS=7;
     private BusinessSitePlanner(){}
     public static boolean isClear(ServerLevel level,BlockPos center){
+        var bounds=new net.minecraft.world.level.levelgen.structure.BoundingBox(center.getX()-RADIUS,center.getY()-1,center.getZ()-RADIUS,center.getX()+RADIUS,center.getY()+6,center.getZ()+RADIUS);
+        if(!level.getWorldBorder().isWithinBounds(center.offset(-RADIUS,0,-RADIUS))||!level.getWorldBorder().isWithinBounds(center.offset(RADIUS,0,RADIUS)))return false;
+        if(UdeSavedData.get(level.getServer()).intersectsPlot(level,bounds))return false;
+        for(var hall:CityHallData.get(level).halls())if(hall.center!=null&&CityHallWorldgen.overlaps(bounds,hall.bounds()))return false;
         int y=center.getY();
         for(int x=-RADIUS;x<=RADIUS;x++)for(int z=-RADIUS;z<=RADIUS;z++){
+            BlockPos floor=center.offset(x,-1,z);
+            if(!level.hasChunk(floor.getX()>>4,floor.getZ()>>4))return false;
+            if(CityHallData.get(level).playerModified(new net.minecraft.world.level.ChunkPos(floor).toLong()))return false;
+            if(!CityHallBuilder.natural(level.getBlockState(floor))||level.getBlockEntity(floor)!=null||!level.getFluidState(floor).isEmpty())return false;
             int height=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,center.getX()+x,center.getZ()+z);
             if(Math.abs(height-y)>1)return false;
             for(int dy=0;dy<=6;dy++){
@@ -28,6 +36,7 @@ public final class BusinessSitePlanner {
             for(int dx:new int[]{-distance,0,distance})for(int dz:new int[]{-distance,0,distance}){
                 if(dx==0&&dz==0)continue;
                 int x=start.getX()+dx,z=start.getZ()+dz;
+                if(!level.hasChunk(x>>4,z>>4))continue;
                 int y=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z);
                 BlockPos candidate=new BlockPos(x,y,z);
                 if(isClear(level,candidate))return candidate;

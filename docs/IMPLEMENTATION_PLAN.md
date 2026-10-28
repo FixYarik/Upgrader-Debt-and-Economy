@@ -21,3 +21,11 @@ Do not misrepresent this alpha as complete. Implement and **verify** these featu
 - Bank vault prevents duplication and unpermitted entry.
 - Business plots never replace existing buildings; blueprint progression accurate.
 - Offline owner workers and chunk unload/reload do not multiply output.
+
+## Progress on 2026-10-28 (0.2 alpha)
+
+- Forge bootstrap/build and baseline client/server banking were verified in 0.1.
+- User-prioritized city halls now have an adjacent-village scheduler, NBT StructureTemplate, bounded terrain validation/placement, settlement persistence and vault access protection.
+- Registered role NPCs now have persistent hall IDs, routes, hostile-mob defence and basic authenticated banker/mayor/business/tax menus. Visuals still reuse vanilla villagers.
+- Minecraft GameTests cover automatic placement, roster uniqueness/persistence, walking, obstruction rejection, menu authorization, vault-door redstone access and interrupted generation. Check the validation report for current results.
+- Financial persistence migration, full phone apps, original NPC art, actual business production, collector travel/collection AI and the real Upgrader Items adapter remain open.

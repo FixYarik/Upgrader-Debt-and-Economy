@@ -25,10 +25,10 @@ This repository is a **partial alpha**, not a completed Minecraft mod. Keep this
 - Add new mechanics as tested feature slices.
 
 ## Important limitations
-- `CityHallBuilder` is presently OP-command-driven, not automatic village worldgen.
-- NPCs are static vanilla villagers; no custom renderers or AI yet.
+- City halls now use a bounded StructureTemplate placement beside suitable loaded vanilla villages; do not add forced chunk loading. See docs/CITYHALL.md.
+- CivicNpc has persistent roles, patrols and bounded hostile-mob defence. Rendering still uses vanilla villager models and profession clothing.
 - Upgrader Items integration is a price **fallback**, not the mod's real valuation API.
-- The phone has a minimal GUI, but not full banking/business app interfaces.
+- The phone still has a minimal GUI. Role NPCs now expose server-authoritative container menus; full phone applications remain unfinished.
 - Basic plots, foundations and blueprint-check construction exist; production machines are not implemented.
 - No actual theft / damage / collector AI yet; only overdue dispatch notification.
-- Unit tests pass but Forge build hasn't been verified. Fix this first.
+- Forge builds and real GameTests have been exercised. Rerun affected checks and report actual outcomes; see docs/VALIDATION_REPORT.md.

@@ -24,6 +24,14 @@ public final class UdeSavedData extends SavedData {
     }
     private final Map<UUID,BusinessPlot> plots=new HashMap<>();
     public BusinessPlot plot(UUID businessId){return plots.get(businessId);}
+    public boolean intersectsPlot(ServerLevel level,net.minecraft.world.level.levelgen.structure.BoundingBox bounds){
+        String dimension=level.dimension().location().toString();
+        for(BusinessPlot p:plots.values())if(p.dimension().equals(dimension)){
+            int r=BusinessSitePlanner.RADIUS;
+            if(bounds.minX()<=p.x()+r&&bounds.maxX()>=p.x()-r&&bounds.minZ()<=p.z()+r&&bounds.maxZ()>=p.z()-r)return true;
+        }
+        return false;
+    }
     public void assignPlot(UUID businessId,ServerLevel level,BlockPos pos){
         if(plots.containsKey(businessId))throw new IllegalStateException("Plot already assigned");
         plots.put(businessId,new BusinessPlot(level.dimension().location().toString(),pos.getX(),pos.getY(),pos.getZ()));

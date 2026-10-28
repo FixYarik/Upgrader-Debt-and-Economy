@@ -10,9 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.npc.Villager;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.ItemStack;
 import dev.ude.world.MayorGuide;
 import net.minecraftforge.event.TickEvent;
@@ -48,29 +46,14 @@ public final class UdeEvents {
         }
     }
 
-    @SubscribeEvent public static void onNPC(PlayerInteractEvent.EntityInteract e){
-        if(e.getHand()!=InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p))return;
-        if(!(e.getTarget() instanceof Villager v) || v.getCustomName()==null)return;
-        String name=v.getCustomName().getString();
-        if(name.equals("Мэр")){
-            ItemStack book=MayorGuide.make();
-            if(!p.getInventory().add(book))p.drop(book,false);
-            p.sendSystemMessage(Component.literal("§6[Мэр] §fДобро пожаловать в мэрию! Держи путеводитель по финансовому выживанию."));
-        } else if(name.equals("БизнесЧлен")){
-            p.sendSystemMessage(Component.literal("§6[БизнесЧлен] §fКапитал важнее вдохновения. Ферма 2000, магазин 3000, шахта 5000, доставка 7500, завод 15000. /ude business buy FARM"));
-        } else if(name.contains("банкир")||name.equals("Банкир")){
-            p.sendSystemMessage(Component.literal("§6[Банкир] §f/ude bank open | /ude bank balance | /ude credit take MICRO 500 5 | /ude credit list"));
-        } else if(name.startsWith("Спортик")){
-            p.sendSystemMessage(Component.literal("§c[Спортик] §fПроценты не спят. Я тоже. /ude credit list"));
-        } else if(name.contains("Геннадий")){
-            p.sendSystemMessage(Component.literal("§6[Геннадий] §fЕсть доходы? Не забудь про игровые налоги предприятий."));
-        } else return;
-        e.setCancellationResult(InteractionResult.SUCCESS);e.setCanceled(true);
-    }
     @SubscribeEvent public static void onServerTick(TickEvent.ServerTickEvent e){
         if(e.phase!=TickEvent.Phase.END)return;
-        var server=ServerLifecycleHooks.getCurrentServer();if(server==null)return;
+        var server=e.getServer();
         long now=server.overworld().getGameTime();
+        for(ServerLevel level:server.getAllLevels()){
+            dev.ude.world.CityHallWorldgen.tick(level);
+            dev.ude.world.CityHallProtection.tick(level);
+        }
         if(now%20!=0)return; // Server scans once per second.
         UdeSavedData data=UdeSavedData.get(server);
         var due=data.engine().markCollectorsDue(now,l->{

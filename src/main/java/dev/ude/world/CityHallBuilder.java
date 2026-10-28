@@ -1,96 +1,119 @@
 package dev.ude.world;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
+import dev.ude.UpgraderDebtEconomy;
+import dev.ude.npc.CivicNpc;
+import dev.ude.npc.CivicRole;
+import net.minecraft.core.*;
+import net.minecraft.nbt.*;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraftforge.common.util.BlockSnapshot;
+import net.minecraftforge.event.ForgeEventFactory;
+import java.util.*;
 
-/**
- * Alpha city-hall generator. Command-driven placement, not yet village worldgen.
- * 55x65 vanilla-block building with two floors, vault, patrol hall, clerks and offices.
- */
+/** Vanilla StructureTemplate data, applied in a bounded and restart-safe sequence. */
 public final class CityHallBuilder {
-    public static final int HALF_X=27,HALF_Z=32;
-    private CityHallBuilder(){}
-    public static boolean canBuild(ServerLevel level,BlockPos center){
-        int y=center.getY();
-        // Conservative: avoid existing construction and steep terrain.
-        for(int x=-HALF_X;x<=HALF_X;x+=3)for(int z=-HALF_Z;z<=HALF_Z;z+=3){
-            int surface=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,center.getX()+x,center.getZ()+z);
-            if(Math.abs(surface-y)>2)return false;
-            for(int dy=0;dy<=18;dy+=3) {
-                BlockPos at=center.offset(x,dy,z);
-                if(!level.isEmptyBlock(at) && !level.getBlockState(at).canBeReplaced())return false;
-            }
+    public static final int HALF_X=27, HALF_Z=32, COLUMNS=55*65;
+    public record PlanBlock(BlockPos pos,BlockState state) {}
+    private CityHallBuilder() {}
+    public static List<PlanBlock> plan(ServerLevel level) {
+        var template=level.getStructureManager().get(new ResourceLocation(UpgraderDebtEconomy.MOD_ID,"cityhall"))
+            .orElseThrow(()->new IllegalStateException("Missing city hall StructureTemplate"));
+        CompoundTag n=template.save(new CompoundTag());
+        ListTag palette=n.getList("palette",Tag.TAG_COMPOUND);
+        List<BlockState> states=new ArrayList<>();
+        for(Tag t:palette) states.add(NbtUtils.readBlockState(level.holderLookup(net.minecraft.core.registries.Registries.BLOCK),(CompoundTag)t));
+        List<PlanBlock> result=new ArrayList<>();
+        for(Tag t:n.getList("blocks",Tag.TAG_COMPOUND)) {
+            CompoundTag b=(CompoundTag)t; ListTag p=b.getList("pos",Tag.TAG_INT);
+            result.add(new PlanBlock(new BlockPos(p.getInt(0)-27,p.getInt(1)-5,p.getInt(2)-32),states.get(b.getInt("state"))));
+        }
+        if(result.size()!=55*24*65) throw new IllegalStateException("Unexpected city hall template size");
+        return List.copyOf(result);
+    }
+    public static boolean loaded(ServerLevel level,BlockPos c) {
+        if(c.getY()-5<level.getMinBuildHeight() || c.getY()+18>=level.getMaxBuildHeight()) return false;
+        if(!level.getWorldBorder().isWithinBounds(c.offset(-27,0,-32)) || !level.getWorldBorder().isWithinBounds(c.offset(27,0,32))) return false;
+        for(int x=(c.getX()-27)>>4;x<=(c.getX()+27)>>4;x++)
+            for(int z=(c.getZ()-32)>>4;z<=(c.getZ()+32)>>4;z++) if(!level.hasChunk(x,z)) return false;
+        return true;
+    }
+    public static boolean natural(BlockState s) {
+        return s.is(Blocks.DIRT)||s.is(Blocks.GRASS_BLOCK)||s.is(Blocks.COARSE_DIRT)||s.is(Blocks.ROOTED_DIRT)
+            ||s.is(Blocks.PODZOL)||s.is(Blocks.STONE)||s.is(Blocks.ANDESITE)||s.is(Blocks.DIORITE)||s.is(Blocks.GRANITE)
+            ||s.is(Blocks.DEEPSLATE)||s.is(Blocks.SAND)||s.is(Blocks.RED_SAND)||s.is(Blocks.SANDSTONE)
+            ||s.is(Blocks.RED_SANDSTONE)||s.is(Blocks.GRAVEL)||s.is(Blocks.CLAY)||s.is(Blocks.TUFF);
+    }
+    public static boolean replaceable(ServerLevel level,BlockPos p) {
+        BlockState s=level.getBlockState(p);
+        return s.getFluidState().isEmpty() && level.getBlockEntity(p)==null && (s.isAir()||s.canBeReplaced()||natural(s));
+    }
+    /** Every column is checked, including underground support and unsampled player blocks. */
+    public static boolean safeColumn(ServerLevel level,BlockPos center,int column) {
+        int x=column%55-27,z=column/55-32;
+        BlockPos surface=center.offset(x,0,z);
+        if(CityHallData.get(level).playerModified(new ChunkPos(surface).toLong())) return false;
+        int height=level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,surface.getX(),surface.getZ());
+        if(Math.abs(height-1-center.getY())>2) return false;
+        BlockState ground=level.getBlockState(new BlockPos(surface.getX(),height-1,surface.getZ()));
+        if(!(ground.is(Blocks.GRASS_BLOCK)||ground.is(Blocks.DIRT)||ground.is(Blocks.SAND)||ground.is(Blocks.RED_SAND)||ground.is(Blocks.PODZOL))) return false;
+        for(int y=-6;y<=18;y++) {
+            BlockPos at=center.offset(x,y,z); BlockState s=level.getBlockState(at);
+            if(!replaceable(level,at)) return false;
+            if(at.getY()<height-1 && (!natural(s)||!s.isSolidRender(level,at))) return false;
         }
         return true;
     }
-    private static void set(ServerLevel level,BlockPos center,int x,int y,int z,BlockState state){
-        level.setBlock(center.offset(x,y,z),state,3);
+    public static boolean canBuild(ServerLevel level,BlockPos center) {
+        if(!loaded(level,center)) return false;
+        for(int i=0;i<COLUMNS;i++)if(!safeColumn(level,center,i))return false;
+        return true;
     }
-    private static void spawnClerk(ServerLevel level,BlockPos c,int x,int y,int z,String name){
-        Villager v=EntityType.VILLAGER.create(level);
-        if(v==null)return;
-        v.moveTo(c.getX()+x+0.5,c.getY()+y,c.getZ()+z+0.5,180f,0f);
-        v.setCustomName(Component.literal(name));v.setCustomNameVisible(true);
-        v.setPersistenceRequired();v.setNoAi(true);
-        level.addFreshEntity(v);
+    /** Applies only air/natural terrain or identical already-written blocks; stops on a new obstruction. */
+    public static boolean step(ServerLevel level,CityHallData.Hall hall,List<PlanBlock> plan,int budget) {
+        if(!loaded(level,hall.center))return false;
+        for(int n=0;n<budget && hall.cursor<plan.size();n++,hall.cursor++) {
+            PlanBlock b=plan.get(hall.cursor); BlockPos at=hall.center.offset(b.pos());
+            if(level.getBlockState(at).is(b.state().getBlock()))continue;
+            if(!replaceable(level,at) || ForgeEventFactory.onBlockPlace(null,BlockSnapshot.create(level.dimension(),level,at),Direction.UP)) {
+                hall.phase=CityHallData.Phase.BLOCKED; CityHallData.get(level).setDirty();return false;
+            }
+            level.setBlock(at,b.state(),2);
+        }
+        CityHallData.get(level).setDirty();
+        if(hall.cursor==plan.size()) {
+            hall.phase=CityHallData.Phase.COMPLETE;
+            // Complete blocks are saved before staff reconciliation; staff UUIDs are deterministic.
+            ensureStaff(level,hall); return true;
+        }
+        return false;
     }
-    public static void build(ServerLevel level,BlockPos c){
-        // Foundation, terracotta floors and hollow stone-brick walls.
-        for(int x=-HALF_X;x<=HALF_X;x++)for(int z=-HALF_Z;z<=HALF_Z;z++){
-            set(level,c,x,-1,z,Blocks.STONE_BRICKS.defaultBlockState());
-            set(level,c,x,0,z,Blocks.POLISHED_ANDESITE.defaultBlockState());
-            set(level,c,x,7,z,Blocks.SMOOTH_STONE.defaultBlockState());
-            set(level,c,x,15,z,Blocks.DEEPSLATE_TILES.defaultBlockState());
+    public static UUID staffId(UUID hall,CivicRole role) {
+        return UUID.nameUUIDFromBytes((hall+":"+role.name()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+    public static void ensureStaff(ServerLevel level,CityHallData.Hall hall) {
+        if(hall.phase!=CityHallData.Phase.COMPLETE || !loaded(level,hall.center))return;
+        for(CivicRole role:CivicRole.values()) {
+            if(hall.staffRetry.getOrDefault(role.name(),0L)>level.getGameTime())continue;
+            UUID id=staffId(hall.id,role);
+            if(level.getEntity(id)!=null)continue;
+            CivicNpc npc=UpgraderDebtEconomy.CIVIC_NPC.get().create(level);
+            if(npc==null)continue;
+            npc.setUUID(id);npc.assign(hall.id,role,hall.center.offset(role.x,role.y,role.z));
+            if(level.addFreshEntity(npc)&&hall.staffRetry.remove(role.name())!=null)CityHallData.get(level).setDirty();
         }
-        for(int y=1;y<=14;y++){
-            for(int x=-HALF_X;x<=HALF_X;x++)for(int z=-HALF_Z;z<=HALF_Z;z++){
-                if(Math.abs(x)==HALF_X || Math.abs(z)==HALF_Z){
-                    boolean window=y%7>=3 && y%7<=5 && ((Math.abs(x)==HALF_X && z%5==0)||(Math.abs(z)==HALF_Z && x%5==0));
-                    set(level,c,x,y,z,(window?Blocks.GLASS_PANE:Blocks.STONE_BRICKS).defaultBlockState());
-                }
-            }
-        }
-        // Entrance: 7-block-wide corridor.
-        for(int x=-3;x<=3;x++)for(int y=1;y<=6;y++)set(level,c,x,y,-HALF_Z,Blocks.AIR.defaultBlockState());
-        // Open the central staircase corridor between floors.
-        for(int x=-3;x<=3;x++)for(int z=-6;z<=6;z++)set(level,c,x,7,z,Blocks.AIR.defaultBlockState());
-        // Ornamental pillars on the facade.
-        for(int x=-22;x<=22;x+=11)for(int y=1;y<=14;y++){
-            set(level,c,x,y,-HALF_Z-1,Blocks.QUARTZ_PILLAR.defaultBlockState());
-        }
-        // Three transverse departments: bank, mayor, business.
-        for(int x=-HALF_X+1;x<=HALF_X-1;x++)for(int y=1;y<=6;y++){
-            for(int z:new int[]{-11,11}) {
-                if(Math.abs(x)>3)set(level,c,x,y,z,Blocks.POLISHED_ANDESITE.defaultBlockState());
-            }
-        }
-        // Bank's impressive counters and vault door.
-        for(int z=-28;z<=-14;z++) {
-            set(level,c,-10,1,z,Blocks.IRON_BLOCK.defaultBlockState());
-            set(level,c,10,1,z,Blocks.IRON_BLOCK.defaultBlockState());
-        }
-        for(int x=-6;x<=6;x++)for(int y=1;y<=4;y++)set(level,c,x,y,17,Blocks.IRON_BLOCK.defaultBlockState());
-        for(int y=1;y<=3;y++)set(level,c,0,y,17,Blocks.IRON_DOOR.defaultBlockState());
-        for(int x=-22;x<=22;x+=11)for(int z=-26;z<=26;z+=13){
-            set(level,c,x,14,z,Blocks.SEA_LANTERN.defaultBlockState());
-            set(level,c,x,6,z,Blocks.SEA_LANTERN.defaultBlockState());
-        }
-        // Decorative fake reserve, not exploitable economy money.
-        for(int x=-3;x<=3;x++)for(int z=22;z<=27;z++)set(level,c,x,1,z,Blocks.GOLD_BLOCK.defaultBlockState());
-        spawnClerk(level,c,-15,1,-18,"Банкир");
-        spawnClerk(level,c,15,1,-18,"Старший банкир");
-        spawnClerk(level,c,0,8,15,"Мэр");
-        spawnClerk(level,c,12,8,15,"БизнесЧлен");
-        spawnClerk(level,c,-12,8,15,"Инспектор Геннадий");
-        spawnClerk(level,c,-16,1,4,"Спортик Валера");
-        spawnClerk(level,c,-13,1,4,"Спортик Димон");
-        spawnClerk(level,c,-10,1,4,"Спортик Саня");
-        spawnClerk(level,c,8,1,20,"Начальник охраны");
+    }
+    /** Admin command also creates a persisted reservation; no synchronous unbounded build. */
+    public static void build(ServerLevel level,BlockPos c) {
+        if(level.dimension()!=net.minecraft.world.level.Level.OVERWORLD)throw new IllegalStateException("City halls are supported in the Overworld");
+        CityHallData data=CityHallData.get(level);
+        long key=new ChunkPos(c).toLong();
+        if(data.halls().stream().anyMatch(h->h.village==key)) throw new IllegalStateException("City hall already registered here");
+        var hall=data.discover(level,key,new net.minecraft.world.level.levelgen.structure.BoundingBox(c.offset(-1,0,-1)));
+        if(hall==null)throw new IllegalStateException("City hall disabled by configured frequency or limit");
+        hall.center=c.immutable();hall.phase=CityHallData.Phase.BUILDING;data.setDirty();level.getDataStorage().save();
     }
 }

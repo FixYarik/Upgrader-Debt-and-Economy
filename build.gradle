@@ -21,7 +21,8 @@ minecraft {
             mods { upgrader_debt_economy { source sourceSets.main } }
         }
         gameTestServer {
-            workingDirectory project.file('run')
+            property 'forge.enabledGameTestNamespaces', 'upgrader_debt_economy'
+            workingDirectory project.file('run-gametest')
             property 'forge.logging.console.level', 'info'
             mods { upgrader_debt_economy { source sourceSets.main } }
         }
@@ -49,3 +50,9 @@ tasks.register('commandTreeTest', JavaExec) {
     mainClass = 'dev.ude.commands.CommandTreeTest'
 }
 tasks.named('check') { dependsOn tasks.named('coreTest'), tasks.named('commandTreeTest') }
+
+// This directory belongs exclusively to the automated test runner, never to run/.
+// A fresh world prevents persisted failed candidate records from contaminating the next run.
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    doFirst { delete project.file('run-gametest/world') }
+}

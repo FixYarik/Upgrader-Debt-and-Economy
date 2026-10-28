@@ -1,67 +1,67 @@
-# Upgrader: Debt & Economy — Alpha Source Project
+# Upgrader: Debt & Economy — Alpha 0.2.0
 
-**Status: early source prototype, not a completed Minecraft mod.**
+Дополнение для **Minecraft 1.20.1 / Forge 47.4.28 / Java 17**. Это развивающийся alpha-прототип: весь объём [исходного ТЗ](docs/FULL_REQUIREMENTS.md) ещё не реализован.
 
-Target: Minecraft Java 1.20.1 / Forge 47.4.28 / Java 17.
+## Установка и проверка
 
-## What is already coded
+1. Установите Forge 47.4.28 и Java 17.
+2. Скачайте `dist/upgrader_debt_economy-0.2.0-alpha.jar` в папку `mods` клиента и сервера.
+3. Для проверки используйте отдельный обычный мир с равнинными деревнями. Upgrader Items 1.2.1 Forge можно установить рядом; он пока не обязателен.
+4. Найдите деревню и исследуйте свободную местность у её границ. Мэрия размещается **рядом с деревней**, когда целиком загружена подходящая площадка 55×65. Постройки, жидкости, полости под фундаментом, сильный перепад высот и занятые участки приводят к отказу.
+5. `/ude cityhall locate` показывает ближайшую зарегистрированную мэрию. Администратору доступна диагностика `/ude cityhall status`.
 
-- Deterministic server-side accounting: bank accounts, transfers, fixed-fee loan issuance, partial repayment, overdue dispatch after 72,000 elapsed game ticks, business purchase/registration, bookkeeping tax, homes and idempotent transaction IDs.
-- Persistent serialization into Overworld `SavedData` (prototype text encoding stored in NBT).
-- Forge source files for `/ude` commands, credit coins, a smartphone item with a compact clickable GUI, ATM and home-marker blocks.
-- Admin command to place a **55×65 block** prototype town hall in a clear, flat region, populated with **named vanilla villager** clerks. Not automatic world generation; not final architecture.
-- Price fallback for a few vanilla materials. Not Upgrader Items' actual valuation API.
-- 43 deterministic core assertions compiled and executed with JDK 17, plus command-tree regression checks attached to `gradle build`.
+Не каждая деревня имеет подходящий участок. Мод не загружает территорию принудительно: иногда нужно подойти к краю деревни, чтобы площадка вошла в дистанцию загрузки. Строительство и проверка рельефа распределены по тикам.
 
-## What is NOT implemented
+## Что добавлено в 0.2
 
-- No custom NPC models, animations or walking/stealing/fighting sporting collector AI. The collector feature currently **announces** overdue dispatch only.
-- No actual bank vault permissions/guards, business automatic machinery or true factory production. Business plots and foundational blueprint checks are implemented, but not complete production.
-- A simple smartphone GUI exists, but full banking/business app screens are not implemented. Current actions use authenticated Minecraft commands.
-- No actual Upgrader Items valuation integration yet; generic fallback pricing remains. Its `upgrader` mod ID and public valuation methods have now been inspected, and joint client/server loading was checked.
-- No automatic town-hall structures inside vanilla village world generation.
-- The alpha now builds with JDK 17 / Gradle 8.8; client, dedicated server, basic banking and save/reload were checked. Full requirements remain unfinished. See `docs/VALIDATION_REPORT.md` for exact scope and limitations.
+- Автоматическое обнаружение обычных деревень, отдельный NBT-шаблон мэрии 55×65, этажи, рабочие лестницы, кабинеты, банковские стойки, освещение и подвальное хранилище.
+- Сохранение поселения и состояния генерации; одна мэрия на зарегистрированную деревню.
+- Отдельная сущность служащего с UUID мэрии и постоянной ролью: мэр, два банкира, БизнесЧлен, Геннадий, начальник охраны и трое спортиков. Нормальная мэрия получает ровно одного мэра и одного БизнесЧлена.
+- Патрули с конечными маршрутами, возвращение на рабочие места и защита от враждебных мобов в районе мэрии. NPC используют стандартные модели и профессиональную одежду жителей; оригинальные модели и костюмы ещё предстоят.
+- Серверные меню банкира: открыть счёт, внести/снять монету по 100 ₡, взять микрозайм 500 ₡ на пять игровых дней, погасить первый активный кредит доступными средствами.
+- Меню мэра с путеводителем, каталог предприятий БизнесЧлена и оплата существующих налогов у Геннадия.
+- Защищённая дверь хранилища, запрет доступа обычным посетителям, предупреждение охраны, защита хранилища от разрушения и поршней, защита мэрии от взрывов.
+- Четыре настоящих Minecraft GameTest, проверки ядра экономики и дерева команд. Точные результаты: [отчёт](docs/VALIDATION_REPORT.md).
 
-## Prerequisites for Forge compilation
+Настройки находятся в `<мир>/serverconfig/upgrader_debt_economy-server.toml`: автоматическая генерация, процент подходящих деревень, лимит записей, блоков и проверяемых колонок за тик. [Подробности](docs/CITYHALL.md).
 
-1. Install JDK 17, and a compatible Gradle or obtain the *official* Forge MDK 1.20.1-47.4.28 including its Gradle wrapper.
-2. Copy/merge the official `gradle/` wrapper files, `gradlew` and `gradlew.bat` into this project. Do not overwrite this project's source.
-3. In PowerShell, run `./gradlew.bat build` or with Gradle installed run `gradle build`.
-4. Correct any Forge API mismatches found by this first real build; no in-game verification was possible here.
-5. For development launch `./gradlew.bat runClient` and `./gradlew.bat runServer`.
-6. Install Upgrader Items Forge for 1.20.1 separately only after checking compatibility, and compare logs; do not assume `modId`.
+## Экономика и команды
 
-## Offline unit tests
+Один игровой день — 24 000 прошедших тиков. Таймер просрочки — 72 000 тиков после срока кредита, с сохранением состояния.
 
-Run `python scripts/test_core.py` with `javac` and `java` available (JDK 17+). This tests **pure Java domain rules** without Forge dependencies.
-
-## Commands coded (unverified in game)
-
-- `/ude help`, `/ude bank open`, `/ude bank balance`, `/ude bank deposit <count>`, `/ude bank withdraw <count>` (100 ₡ per coin)
+- `/ude help`
+- `/ude bank open`, `/ude bank balance`, `/ude bank deposit <count>`, `/ude bank withdraw <count>`
 - `/ude bank transfer <player> <amount>`
-- `/ude market prices`, `/ude market sell <item> <count>` (limited vanilla item whitelist)
+- `/ude market prices`, `/ude market sell <item> <count>`
 - `/ude credit take <MICRO|PERSONAL|BUSINESS|COLLATERAL> <amount> <days>`
 - `/ude credit list`, `/ude credit repay <loan_uuid> <amount>`
 - `/ude home set`
 - `/ude business buy <FARM|SHOP|MINE|LOGISTICS|FACTORY>`, `/ude business list`, `/ude business inspect <uuid>`
-- OP only: `/ude money grant <player> <amount>` and `/ude cityhall build` (requires safe clear area)
+- `/ude cityhall locate`
+- OP: `/ude money grant <player> <amount>`, `/ude cityhall status`, `/ude cityhall build`
 
-## Construction alpha instructions
+Административная постройка также использует безопасную проверку участка и очередь строительства. Для подвала нужны минимум шесть слоёв твёрдого природного основания; стандартный тонкий superflat у нижней границы мира не подходит.
 
-Register a business, find its generated 15x15 foundation. Place 4 oak-log corner pillars at offset (+/-6, y=0..3, +/-6), a closed 13x13 oak-plank perimeter at relative y=4, a crafting table at (+0, +0, +2) and a barrel at (+2, +0, +2). Run `/ude business inspect <id>` to validate and open your building. This construction is checked but factories do not automatically produce output yet.
+После покупки предприятия постройте четыре дубовые опоры высотой четыре блока в углах ±6, рамку крыши из досок на высоте +4, верстак в (0,0,+2) и бочку в (+2,0,+2), затем `/ude business inspect <id>`. Это базовый строительный прототип, а не готовая автоматическая фабрика.
 
-## Important design notes
+## Что остаётся
 
-- Credits are **fictional in-game currency**, no real-world services.
-- `markCollectorsDue()` uses the Overworld's `gameTime` (elapsed ticks), so sleep skips the *visual day/night cycle* but doesn't automatically advance loan time by a full 24,000 elapsed ticks. This differs from a wall-clock-like day system and should be made configurable later.
-- Gold blocks in the town hall are currently ordinary Minecraft blocks and are not protected. The world-builder command is **creative/admin only** and should be used in disposable test worlds.
-- Protect worlds before experimenting, especially with command-driven building.
-- Special business sale API is domain-only and is intentionally not exposed as a player command without verified inventory consumption.
+- Спортики патрулируют и помогают против монстров, но взыскание долга пока ограничено уведомлением: походы к дому и изъятие имущества не реализованы.
+- Автоматическое производство, рабочие предприятий, логистические цепочки и полные приложения смартфона ещё не реализованы.
+- Стоимость предметов всё ещё берётся из ограниченного fallback. Метаданные и публичные методы Upgrader Items проверены, но полноценный адаптер ещё не подключён.
+- Специальные API сторонних модов приватов не подключались. Используются консервативная проверка блоков, учёт изменённых игроками чанков и стандартные события Forge.
+- Полный мультиплеерный баланс, все экономические сценарии, художественное оформление и весь исходный объём ТЗ ещё требуют работы.
 
-## External references
+## Разработка
 
-- Forge official MDK downloads: https://files.minecraftforge.net/net/minecraftforge/forge/index_1.20.1.html
-- Forge 1.20.1 documentation: https://docs.minecraftforge.net/en/1.20.1/
-- Upgrader Items: https://modrinth.com/mod/upgrade-items/version/nIG81STn
+JDK 17 и Gradle 8.8:
 
-See `docs/IMPLEMENTATION_PLAN.md` and `AGENTS.md` for handoff to Codex.
+```bash
+python scripts/test_core.py
+gradle build
+gradle runGameTestServer -x downloadAssets
+```
+
+`build` запускает 43 проверки ядра и проверку иерархии команд. `runGameTestServer` использует отдельную одноразовую папку `run-gametest/world`, которую очищает перед запуском; обычный каталог `run/` не очищается. Шаблон здания воспроизводится командой `python scripts/generate_cityhall.py` без сторонних библиотек.
+
+Настройка управляемой облачной среды: [CLOUD_ENVIRONMENT.md](docs/CLOUD_ENVIRONMENT.md). Дальнейшие этапы: [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
