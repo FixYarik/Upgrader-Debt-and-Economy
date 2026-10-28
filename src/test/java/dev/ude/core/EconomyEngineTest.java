@@ -22,6 +22,10 @@ public final class EconomyEngineTest {
         check(e.markCollectorsDue(loan.dueAt+EconomyEngine.COLLECTOR_DELAY-1).isEmpty(),"not dispatched early");
         check(e.repay(anna,loan.id,400,"repay1")==400,"partial repay");
         check(loan.outstanding==750,"remaining debt");
+        check(e.markCollectorsDue(loan.dueAt+EconomyEngine.COLLECTOR_DELAY,l->false).isEmpty(),"ineligible owner waits");
+        check(!loan.collectorDispatched,"waiting owner does not consume dispatch");
+        EconomyEngine pending=EconomyEngine.importText(e.exportText());
+        check(pending.markCollectorsDue(loan.dueAt+EconomyEngine.COLLECTOR_DELAY,l->l.owner.equals(anna)).size()==1,"pending dispatch survives reload and eligibility change");
         check(e.markCollectorsDue(loan.dueAt+EconomyEngine.COLLECTOR_DELAY).size()==1,"dispatch exactly at threshold");
         check(e.markCollectorsDue(loan.dueAt+EconomyEngine.COLLECTOR_DELAY).isEmpty(),"no duplicate dispatch");
         e.setHome(anna,new EconomyEngine.Home("minecraft:overworld",2,64,10));

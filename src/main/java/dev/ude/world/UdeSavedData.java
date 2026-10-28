@@ -30,8 +30,8 @@ public final class UdeSavedData extends SavedData {
         changed();
     }
     public static UdeSavedData get(MinecraftServer server){
-        return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(
-            UdeSavedData::new,UdeSavedData::load,null),"upgrader_debt_economy");
+        return server.overworld().getDataStorage().computeIfAbsent(
+            UdeSavedData::load,UdeSavedData::new,"upgrader_debt_economy");
     }
     private static UdeSavedData load(CompoundTag tag){
         UdeSavedData data=new UdeSavedData();

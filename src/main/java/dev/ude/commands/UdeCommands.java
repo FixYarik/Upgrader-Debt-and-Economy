@@ -43,9 +43,9 @@ public final class UdeCommands {
     }
     private static void msg(CommandSourceStack source,String m){source.sendSuccess(()->Component.literal("§6[UDE] §f"+m),false);}
     private static int guard(CommandSourceStack src,Action task){
-        try{return task.run();}catch(RuntimeException ex){src.sendFailure(Component.literal("UDE: "+ex.getMessage()));return 0;}
+        try{return task.run();}catch(com.mojang.brigadier.exceptions.CommandSyntaxException | RuntimeException ex){src.sendFailure(Component.literal("UDE: "+ex.getMessage()));return 0;}
     }
-    @FunctionalInterface private interface Action {int run() throws RuntimeException;}
+    @FunctionalInterface private interface Action {int run() throws com.mojang.brigadier.exceptions.CommandSyntaxException;}
     private static UdeSavedData data(CommandSourceStack s){return UdeSavedData.get(s.getServer());}
     private static String dPlot(UdeSavedData data,UUID id){var p=data.plot(id);return p==null?"нет":p.pos().toShortString();}
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher){
@@ -105,7 +105,7 @@ public final class UdeCommands {
                         long paid=Math.multiplyExact(unit,count);
                         d.engine().grant(p.getUUID(),paid,op());d.changed();
                         msg(c.getSource(),"Продано "+count+" × "+itemName+" за "+paid+" ₡");return 1;
-                    }))))))
+                    })))))
             )
             .then(Commands.literal("credit")
                 .then(Commands.literal("take")
@@ -118,7 +118,7 @@ public final class UdeCommands {
                         var loan=d.engine().takeLoan(p.getUUID(),type,LongArgumentType.getLong(c,"amount"),
                             c.getSource().getServer().overworld().getGameTime(),IntegerArgumentType.getInteger(c,"days"),op());
                         d.changed();msg(c.getSource(),"Кредит выдан. ID "+loan.id+", к возврату "+loan.outstanding+" ₡");return 1;
-                    })))))
+                    }))))))
                 .then(Commands.literal("list").executes(c->guard(c.getSource(),()->{
                     UUID uid=c.getSource().getPlayerOrException().getUUID();
                     var own=data(c.getSource()).engine().loans().stream().filter(l->l.owner.equals(uid)).toList();
@@ -179,7 +179,7 @@ public final class UdeCommands {
                     ServerPlayer p=EntityArgument.getPlayer(c,"player");UdeSavedData d=data(c.getSource());
                     d.engine().openAccount(p.getUUID());d.engine().grant(p.getUUID(),LongArgumentType.getLong(c,"amount"),op());d.changed();
                     msg(c.getSource(),"Средства зачислены игроку "+p.getName().getString());return 1;
-                })))))
+                }))))))
             .then(Commands.literal("cityhall").then(Commands.literal("build").requires(s->s.hasPermission(2))
                 .executes(c->guard(c.getSource(),()->{
                     ServerPlayer p=c.getSource().getPlayerOrException();ServerLevel level=p.serverLevel();
@@ -189,6 +189,6 @@ public final class UdeCommands {
                     msg(c.getSource(),"Мэрия построена около "+center.toShortString());return 1;
                 })))
             )
-        ));
+        );
     }
 }

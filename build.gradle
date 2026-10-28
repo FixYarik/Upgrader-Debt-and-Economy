@@ -43,3 +43,9 @@ tasks.register('coreTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'dev.ude.core.EconomyEngineTest'
 }
+tasks.register('commandTreeTest', JavaExec) {
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.ude.commands.CommandTreeTest'
+}
+tasks.named('check') { dependsOn tasks.named('coreTest'), tasks.named('commandTreeTest') }

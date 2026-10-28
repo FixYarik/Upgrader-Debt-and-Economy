@@ -11,16 +11,16 @@ Target: Minecraft Java 1.20.1 / Forge 47.4.28 / Java 17.
 - Forge source files for `/ude` commands, credit coins, a smartphone item with a compact clickable GUI, ATM and home-marker blocks.
 - Admin command to place a **55×65 block** prototype town hall in a clear, flat region, populated with **named vanilla villager** clerks. Not automatic world generation; not final architecture.
 - Price fallback for a few vanilla materials. Not Upgrader Items' actual valuation API.
-- 40 deterministic core assertions compiled with Java 17 source/bytecode target.
+- 43 deterministic core assertions compiled and executed with JDK 17, plus command-tree regression checks attached to `gradle build`.
 
 ## What is NOT implemented
 
 - No custom NPC models, animations or walking/stealing/fighting sporting collector AI. The collector feature currently **announces** overdue dispatch only.
 - No actual bank vault permissions/guards, business automatic machinery or true factory production. Business plots and foundational blueprint checks are implemented, but not complete production.
 - A simple smartphone GUI exists, but full banking/business app screens are not implemented. Current actions use authenticated Minecraft commands.
-- No actual Upgrader Items integration, its Forge mod ID has NOT been verified; only generic fallback pricing.
+- No actual Upgrader Items valuation integration yet; generic fallback pricing remains. Its `upgrader` mod ID and public valuation methods have now been inspected, and joint client/server loading was checked.
 - No automatic town-hall structures inside vanilla village world generation.
-- No build JAR validated. **Forge dependencies and Gradle could not be downloaded from this workspace.**
+- The alpha now builds with JDK 17 / Gradle 8.8; client, dedicated server, basic banking and save/reload were checked. Full requirements remain unfinished. See `docs/VALIDATION_REPORT.md` for exact scope and limitations.
 
 ## Prerequisites for Forge compilation
 

@@ -108,8 +108,13 @@ public final class EconomyEngine {
     }
     /** Returns loans that become eligible for dispatch. The dispatch flag is persisted. */
     public synchronized List<Loan> markCollectorsDue(long now) {
+        return markCollectorsDue(now, loan -> true);
+    }
+    /** Ineligible owners remain pending so an offline player or missing home does not consume dispatch. */
+    public synchronized List<Loan> markCollectorsDue(long now, java.util.function.Predicate<Loan> eligible) {
+        Objects.requireNonNull(eligible);
         List<Loan> result=new ArrayList<>();
-        for(Loan l:loans.values())if(l.needsCollector(now)) {l.collectorDispatched=true;result.add(l);}
+        for(Loan l:loans.values())if(l.needsCollector(now) && eligible.test(l)) {l.collectorDispatched=true;result.add(l);}
         return result;
     }
     public synchronized Collection<Loan> loans() {return List.copyOf(loans.values());}
